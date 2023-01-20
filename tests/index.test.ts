@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import fs from 'fs'
 import { Msg } from '../src'
+import HL7Json from '../sample.json'
 
 const HL7 = fs.readFileSync('./sample.hl7', 'utf8')
 
@@ -195,6 +196,32 @@ const tests: Record<string, { path: string; expected: unknown }> = {
     path: 'EDU-4.1',
     expected: ['YALE UNIVERSITY', 'HARVARD MEDICAL SCHOOL'],
   },
+  PRA_7: {
+    path: 'PRA-7',
+    expected: [
+      [['ADMIT', 'T', 'ADT'], ['MED', '', 'L2'], '19941231'],
+      [['DISCH', '', 'ADT'], ['MED', '', 'L2'], '19941231'],
+    ],
+  },
+  PRA_7_1: {
+    path: 'PRA-7.1',
+    expected: [
+      ['ADMIT', 'T', 'ADT'],
+      ['DISCH', '', 'ADT'],
+    ],
+  },
+  PRA_7_1_1: {
+    path: 'PRA-7.1.1',
+    expected: ['ADMIT', 'DISCH'],
+  },
+  PRA_7_1_2: {
+    path: 'PRA-7.1.2',
+    expected: ['T', ''],
+  },
+  PRA_7first_1_2: {
+    path: 'PRA-7[1].1.2',
+    expected: 'T',
+  },
 }
 
 const testSuite = Object.entries(tests).map(([name, { path, expected }]) => {
@@ -203,6 +230,41 @@ const testSuite = Object.entries(tests).map(([name, { path, expected }]) => {
 
 test.each(testSuite)('$name', ({ name, path, expected }) => {
   expect(msg.get(path)).toStrictEqual(expected)
+})
+
+test('Get LAN Segment', () => {
+  expect(msg.getSegment('LAN').toString()).toBe(
+    'LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403|1^EXCELLENT^HL70404|'
+  )
+})
+
+test('Get STF-10[1] Field', () => {
+  expect(msg.getSegment('STF', 1).getField(10, 1).toString()).toBe(
+    '(555)555-1003X345^C^O'
+  )
+})
+
+test('Get STF-10.1 Component', () => {
+  expect(
+    msg
+      .getSegment('STF')
+      .getField(10)
+      .getComponent(1)
+      .toString({ fieldRepSep: '; ' }, true)
+  ).toBe('(555)555-1003X345; (555)555-3334; (555)555-1345X789')
+})
+
+test('Get STF-10[1].1 Component', () => {
+  expect(msg.getSegment('ZZZ').getField(2).getComponent(2).toString()).toBe(
+    'Chapter&15&Personnel Management'
+  )
+})
+
+test('Get raw msg', () => {
+  const raw = msg.raw()
+  expect(JSON.stringify(raw, undefined, 2)).toBe(
+    JSON.stringify(HL7Json, undefined, 2)
+  )
 })
 
 test('Encode to HL7', () => {

@@ -118,3 +118,7 @@ dist
 # Local files/notes
 local/
 notes/
+
+# Local Config Files
+src/server.config.ts
+src/stores/surreal.config.ts

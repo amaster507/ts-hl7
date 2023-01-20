@@ -6,9 +6,6 @@ export const decodeHL7: FuncDecodeHL7 = (HL7, encoding = undefined) => {
   if (HL7.length === 0) {
     return undefined
   }
-  // if (!HL7.startsWith('MSH')) {
-  //   throw Error(`Expected MSH segment, got ${HL7.slice(0, 3)}`)
-  // }
   const encodingCharacters: MessageMeta['encodingCharacters'] =
     encoding !== undefined
       ? encoding
@@ -24,11 +21,16 @@ export const decodeHL7: FuncDecodeHL7 = (HL7, encoding = undefined) => {
         }
   const meta: MessageMeta = {
     encodingCharacters,
+    encodedAt: new Date(),
   }
-  const segments: Segments = HL7.split(/\r?\n/)
+  const segments: Segments = HL7.split(/\r?\n|\r/)
     .filter((s) => s.length)
     .map((segment) => {
-      return decodeSegment(segment, meta)
+      try {
+        return decodeSegment(segment, meta)
+      } catch (e) {
+        throw e
+      }
     })
   return [meta, segments]
 }

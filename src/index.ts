@@ -1,7 +1,11 @@
-import { getSegment } from './class/getSegment'
+import { addSegment } from './class/addSegment'
+import { getSegments } from './class/getSegments'
+import { setValue } from './class/setValue'
+import { Seg } from './class/Segment'
+import { IMsgLimiter, transform } from './class/transform'
 import decode from './decode'
 import encode from './encode'
-import { Component, Field, Message, Segment } from './types'
+import { Component, Field, Message, Paths, Segment } from './types'
 
 /** MESSAGE
  * A message is the atomic unit of data transferred between systems. It is comprised of a group of segments in a defined sequence. Each message has a message type that defines its purpose. For example the ADT Message type is used to transmit portions of a patient's Patient Administration (ADT) data from one system to another. A three-character code contained within each message identifies its type. These are listed in the Message Type list, Appendix A.
@@ -11,7 +15,6 @@ import { Component, Field, Message, Segment } from './types'
  * @see http://www.hl7.eu/HL7v2x/v251/std251/ch02.html#Heading11
  */
 export class Msg {
-  public msg: Message
   private _msg: Message = [
     {
       encodingCharacters: {
@@ -24,6 +27,8 @@ export class Msg {
     },
     [['MSH', '|', '^~\\&']],
   ]
+  private msg: Message
+  public raw = () => this.msg
   constructor(msg?: Message | string) {
     if (typeof msg === 'string') {
       this.msg = decode(msg) ?? this._msg
@@ -32,29 +37,34 @@ export class Msg {
     } else {
       this.msg = this._msg
     }
+    const version = this.get('MSH-12.1')
+    const messageCode = this.get('MSH-9.1')
+    const triggerEvent = this.get('MSH-9.2')
+    const messageStructure = this.get('MSH-9.3')
+    const messageControlId = this.get('MSH-10.1')
+
+    this.msg[0].version = version as Message[0]['version']
+    this.msg[0].messageCode = messageCode as Message[0]['messageCode']
+    this.msg[0].triggerEvent = triggerEvent as Message[0]['triggerEvent']
+    this.msg[0].messageStructure =
+      messageStructure as Message[0]['messageStructure']
+    this.msg[0].messageControlId =
+      messageControlId as Message[0]['messageControlId']
   }
 
   public addSegment = (segment: string | Segment) => {
-    if (typeof segment === 'string') {
-      const seg = decode(segment)
-      if (seg === undefined) {
-        return false
-      }
-      this.msg[1].push(...seg[1])
-      return this.msg
-    } else if (segment.length > 0) {
-      this.msg[1].push(segment)
-      return this.msg
-    }
-    return false
+    const newSeg = addSegment(segment, this.msg)
+    if (newSeg === false) return false
+    this.msg = newSeg
+    return this
   }
 
   public toString = () => {
     return encode(this.msg)
   }
 
-  public get = (path: string | undefined) => {
-    if (path === undefined) return this.msg
+  private _paths = (path?: string): Paths => {
+    if (path === undefined || path === '') return {}
     const segRx = '([A-Z][A-Z0-9]{2})'
     const repRx = '(?:\\[([0-9]+)\\])'
     const posRx = '(?:[-\\.]([0-9]+))'
@@ -71,17 +81,61 @@ export class Msg {
       componentPosition,
       subComponentPosition,
     ] = paths ?? []
+    return {
+      segmentName,
+      segmentIteration:
+        segmentIteration === undefined ? undefined : parseInt(segmentIteration),
+      fieldPosition:
+        fieldPosition === undefined ? undefined : parseInt(fieldPosition),
+      fieldIteration:
+        fieldIteration === undefined ? undefined : parseInt(fieldIteration),
+      componentPosition:
+        componentPosition === undefined
+          ? undefined
+          : parseInt(componentPosition),
+      subComponentPosition:
+        subComponentPosition === undefined
+          ? undefined
+          : parseInt(subComponentPosition),
+    }
+  }
+
+  public set = (path: string | undefined, value: string) => {
+    this.msg = setValue(this.msg, this._paths(path), value)
+    return this
+  }
+
+  public get = (path: string | undefined) => {
+    if (path === undefined) return this.msg
+    const {
+      segmentName,
+      segmentIteration,
+      fieldPosition,
+      fieldIteration,
+      componentPosition,
+      subComponentPosition,
+    } = this._paths(path)
     return this._get(
       segmentName,
-      segmentIteration === undefined ? undefined : parseInt(segmentIteration),
-      fieldPosition === undefined ? undefined : parseInt(fieldPosition),
-      fieldIteration === undefined ? undefined : parseInt(fieldIteration),
-      componentPosition === undefined ? undefined : parseInt(componentPosition),
-      subComponentPosition === undefined
-        ? undefined
-        : parseInt(subComponentPosition)
+      segmentIteration,
+      fieldPosition,
+      fieldIteration,
+      componentPosition,
+      subComponentPosition
     )
   }
+
+  // public delete = ()
+
+  public getSegments = (segmentName?: string | undefined) =>
+    getSegments(this.msg, segmentName).map((s) => new Seg(s))
+
+  public getSegment = (
+    segmentName: string | undefined,
+    // NOTE: iteration is 1-indexed
+    // NOTE: if undefined, returns first segment
+    iteration: number | undefined = 1
+  ) => new Seg(getSegments(this.msg, segmentName)?.[iteration - 1])
 
   private _get = (
     segmentName: string | undefined,
@@ -91,14 +145,14 @@ export class Msg {
     componentPosition?: number | undefined,
     subComponentPosition?: number | undefined
   ) => {
-    const ret = getSegment(this.msg, segmentName)
-      .filter((_seg, i) => {
+    const ret = this.getSegments(segmentName)
+      .filter((_, i) => {
         if (segmentIteration === undefined) return true
         return i === segmentIteration - 1
       })
       .map((seg) => {
         if (fieldPosition === undefined) return seg
-        return seg?.[fieldPosition]
+        return seg.raw()?.[fieldPosition]
       })
       .map((field) => {
         if (
@@ -107,6 +161,7 @@ export class Msg {
           typeof field[0] === 'object' &&
           field[0]?.hasOwnProperty('rep')
         ) {
+          // is a repeating field...
           let f: Component[] | Field[] = []
           if (fieldIteration === undefined) {
             f = [...field] as Component[] | Field[]
@@ -151,6 +206,40 @@ export class Msg {
       })
     if (ret.length === 1) return ret[0]
     return ret
+  }
+
+  public transform = (transformers: IMsgLimiter) => {
+    this.msg = transform(this.msg, transformers)
+    return this
+  }
+
+  public delete = (path: string) => {
+    const paths = this._paths(path)
+    console.log(paths)
+    return this
+  }
+
+  public copy = (fromPath: string, toPath: string) => {
+    const fromPaths = this._paths(fromPath)
+    const toPaths = this._paths(toPath)
+    console.log({ fromPaths, toPaths })
+    return this
+  }
+
+  public move = (fromPath: string, toPath: string) => {
+    const fromPaths = this._paths(fromPath)
+    const toPaths = this._paths(toPath)
+    console.log({ fromPaths, toPaths })
+    return this
+  }
+
+  public map = (
+    path: string,
+    v: string | Record<string, string> | string[] | (<T = unknown>(v: T) => T)
+  ) => {
+    const paths = this._paths(path)
+    console.log({ paths, v })
+    return this
   }
 }
 

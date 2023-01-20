@@ -1,9 +1,11 @@
 import { Message } from '../types'
+import { deepCopy } from './deepCopy'
 import { encodeRep } from './encodeRep'
 import { encodeSep } from './encodeSep'
 
 type FuncEncodeHL7 = (message: Message) => string
 export const encodeHL7: FuncEncodeHL7 = (message) => {
+  message = deepCopy(message)
   const { fieldSep, repetitionSep, componentSep, subComponentSep } =
     message[0].encodingCharacters
   const segments = message[1]
@@ -19,9 +21,7 @@ export const encodeHL7: FuncEncodeHL7 = (message) => {
     return encodeSep(seg, fieldSep, (field) => {
       return encodeRep(field, repetitionSep, (rep) => {
         return encodeSep(rep, componentSep, (comp) => {
-          return encodeSep(comp, subComponentSep, (sub) => {
-            return sub
-          })
+          return encodeSep(comp, subComponentSep)
         })
       })
     })

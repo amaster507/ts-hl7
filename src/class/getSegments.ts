@@ -1,6 +1,6 @@
 import { Message } from '../types'
 
-export const getSegment = (msg: Message, segmentName: string | undefined) => {
+export const getSegments = (msg: Message, segmentName: string | undefined) => {
   if (segmentName === undefined) return msg[1]
   if (segmentName.match(/^[A-Z0-9]{3}$/) === null)
     throw new Error(

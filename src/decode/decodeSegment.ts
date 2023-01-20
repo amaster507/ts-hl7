@@ -6,16 +6,16 @@ import { getEncodingChars } from './getEncodingChars'
 
 export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
   const name = HL7.match(new RegExp(`^([A-Z][A-Z0-9]{2})`))?.[1]
-  if (!name) throw Error(`Expected segment name, got ${HL7.slice(0, 20)}`)
+  if (!name) {
+    throw Error(`Expected segment name, got ${HL7.slice(0, 20)}`)
+  }
   HL7 = HL7.slice(3)
-  // console.log('HL7: ', HL7)
   let isMSH = false
   if (name === 'MSH') {
     isMSH = true
     meta.encodingCharacters = getEncodingChars(HL7.slice(0, 8))
     HL7 = HL7.slice(Object.keys(meta.encodingCharacters).length)
-  }
-  if (HL7.startsWith(meta.encodingCharacters.fieldSep)) {
+  } else if (HL7.startsWith(meta.encodingCharacters.fieldSep)) {
     HL7 = HL7.slice(1)
   }
   const [hl7, fields] = decodeRepSep(
@@ -23,7 +23,6 @@ export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
     meta.encodingCharacters.repetitionSep,
     meta.encodingCharacters.fieldSep,
     (input, stopChars) => {
-      // console.log(input, stopChars)
       const i = findCharsFirstPos(input, stopChars)
       const [, val] = decodeRepSep(
         input.slice(0, i),
