@@ -94,5 +94,13 @@ test('Map LAN-4', () => {
         return null as T
       })
       .get('LAN-4')
-  ).toBe('')
+  ).toStrictEqual('')
+})
+
+test('Set LAN-4 Raw', () => {
+  expect(
+    msg
+      .setJSON('LAN-4', ["3", "FAIR", "HL70404"])
+      .get('LAN-4')
+  ).toStrictEqual(["3", "FAIR", "HL70404"])
 })

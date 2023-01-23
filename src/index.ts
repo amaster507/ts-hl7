@@ -5,7 +5,7 @@ import { Seg } from './class/Segment'
 import { IMsgLimiter, transform } from './class/transform'
 import decode from './decode'
 import encode from './encode'
-import { Component, Field, Message, Paths, Segment } from './types'
+import { Component, Field, FieldRep, FieldsOrReps, Message, Paths, Segment, Segments } from './types'
 
 /** MESSAGE
  * A message is the atomic unit of data transferred between systems. It is comprised of a group of segments in a defined sequence. Each message has a message type that defines its purpose. For example the ADT Message type is used to transmit portions of a patient's Patient Administration (ADT) data from one system to another. A three-character code contained within each message identifies its type. These are listed in the Message Type list, Appendix A.
@@ -102,6 +102,15 @@ export class Msg {
 
   public set = (path: string | undefined, value: string) => {
     this.msg = setValue(this.msg, this._paths(path), value)
+    return this
+  }
+
+  public setJSON = (
+    path: string | undefined,
+    json: Message | Segments | Segment | FieldsOrReps | FieldRep | Field
+  ) => {
+    const paths = this._paths(path)
+    console.log(paths, json)
     return this
   }
 
