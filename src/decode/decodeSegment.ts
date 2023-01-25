@@ -1,7 +1,6 @@
-import { FuncDecodeSegment } from '../types'
-// import { decodeField } from './decodeField'
+import { FuncDecodeSegment, OneOrMany } from '../types'
+import { decodeField } from './decodeField'
 import { decodeRepSep } from './decodeRepSep'
-import { findCharsFirstPos } from './findCharsFirstPos'
 import { getEncodingChars } from './getEncodingChars'
 
 export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
@@ -22,32 +21,11 @@ export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
     HL7,
     meta.encodingCharacters.repetitionSep,
     meta.encodingCharacters.fieldSep,
-    (input, stopChars) => {
-      const i = findCharsFirstPos(input, stopChars)
-      const [, val] = decodeRepSep(
-        input.slice(0, i),
-        undefined,
-        meta.encodingCharacters.componentSep,
-        (input, stCh) => {
-          stCh.push(...stopChars)
-          const i = findCharsFirstPos(input, stCh)
-          const [, val] = decodeRepSep(
-            input.slice(0, i),
-            undefined,
-            meta.encodingCharacters.subComponentSep,
-            (input, sc) => {
-              sc.push(...stCh)
-              const i = findCharsFirstPos(input, sc)
-              return [input.slice(i), input.slice(0, i)]
-            }
-          )
-          input = input.slice(i)
-          return [input, val]
-        }
-      )
-      input = input.slice(i)
-      return [input, val]
-    }
+    (input, stopChars) =>
+      decodeField(input, stopChars, meta) as [
+        remaining: string,
+        value: OneOrMany<OneOrMany<string> | null | undefined>
+      ]
   )
   if (isMSH) {
     const {

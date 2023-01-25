@@ -8,8 +8,8 @@ export type Component = OneOrMany<SubComponent>
 
 export type Field = OneOrMany<Component>
 export type FieldRep = [{ rep: true }, ...Field[]]
-
-export type FieldsOrReps = (Field | FieldRep)[]
+export type FieldOrRep = Field | FieldRep
+export type FieldsOrReps = FieldOrRep[]
 
 export type Segment = [name: string, ...fields: FieldsOrReps]
 export type Segments = Segment[]

@@ -60,12 +60,19 @@ test('Set Developer ZZZ', () => {
   )
 })
 
+test('Set Sending App MSH.3', () => {
+  msg.set('MSH.3', 'I14Y ENGINE')
+  expect(msg.getSegment('MSH').toString()).toBe(
+    'MSH|^~\\&|I14Y ENGINE|UH|HL7LAB|CH|200702280700||PMU^B01^PMU_B01|MSGID002|P|2.5.1|'
+  )
+})
+
 test('Copy Path', () => {
   expect(msg.copy('ZZZ-1', 'ZZZ-3').get('ZZZ-3')).toBe('Developer')
 })
 
 test('Move Path', () => {
-  msg.copy('ZZZ-3', 'ZZZ-4')
+  msg.move('ZZZ-3', 'ZZZ-4')
   expect(msg.get('ZZZ-3')).toBe(null)
   expect(msg.get('ZZZ-4')).toBe('Developer')
 })
@@ -79,7 +86,7 @@ test('Map LAN-2.2', () => {
         FRENCH: 'French',
       })
       .get('LAN-2.2')
-  ).toBe('LAN-2.2')
+  ).toBe('Spanish')
 })
 
 test('Map LAN-4', () => {
@@ -94,13 +101,11 @@ test('Map LAN-4', () => {
         return null as T
       })
       .get('LAN-4')
-  ).toStrictEqual('')
+  ).toStrictEqual('EXCELLENT')
 })
 
 test('Set LAN-4 Raw', () => {
   expect(
-    msg
-      .setJSON('LAN-4', ["3", "FAIR", "HL70404"])
-      .get('LAN-4')
-  ).toStrictEqual(["3", "FAIR", "HL70404"])
+    msg.setJSON('LAN-4', ['3', 'FAIR', 'HL70404']).get('LAN-4')
+  ).toStrictEqual(['3', 'FAIR', 'HL70404'])
 })

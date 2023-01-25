@@ -1,6 +1,15 @@
 import decodeHL7 from '../decode'
+import { decodeComponent } from '../decode/decodeComponent'
+import { decodeField } from '../decode/decodeField'
 import { decodeSegment } from '../decode/decodeSegment'
-import { Message, Paths } from '../types'
+import { decodeSubComponent } from '../decode/decodeSubComponent'
+import { Field, FieldRep, Message, Paths } from '../types'
+import { isFieldRep } from './isFieldRep'
+import { setComponent } from './setComponent'
+import { setField } from './setField'
+import { setFieldOrRep } from './setFieldOrRep'
+import { setSegment } from './setSegment'
+import { setSubComponent } from './setSubComponent'
 
 export const setValue = (
   msg: Message,
@@ -14,7 +23,6 @@ export const setValue = (
   }: Paths,
   value: string
 ): Message => {
-  let completed = false
   // set the value as the entirity of the message, an empty path, means you are sending a stringified hl7 message.
   if (segmentName === undefined) {
     const [, segments] =
@@ -27,23 +35,86 @@ export const setValue = (
     // FixMe: should this throw an error instead?
     return msg
   }
-  let segIndex = 0
-  msg[1].forEach((seg, i) => {
-    if (seg[0] === segmentName) {
-      if (segmentIteration) {
-        segIndex++
-      }
-      if (segIndex === segmentIteration || segmentIteration === undefined) {
-        if (fieldPosition === undefined) {
-          // set the value of the entire segment.
-          msg[1][i] = decodeSegment(value, msg[0])
-          completed = true
-        } else {
-          // continue doing something more here....
-        }
-      }
+
+  if (
+    subComponentPosition !== undefined &&
+    componentPosition !== undefined &&
+    fieldPosition !== undefined
+  ) {
+    const [remaining, subComponent] = decodeSubComponent(value, [
+      msg[0].encodingCharacters.subComponentSep,
+    ])
+    if (remaining !== '') {
+      // TODO: return more information, custom error/logging?
+      console.warn('Leftover hl7 after decoding SubComponent')
     }
-  })
-  if (!completed) console.warn('Value not set...') // ToDo: more details on why??
-  return msg
+    return setSubComponent(
+      msg,
+      segmentName,
+      segmentIteration,
+      fieldPosition,
+      fieldIteration,
+      componentPosition,
+      subComponentPosition,
+      subComponent
+    )
+  }
+
+  if (componentPosition !== undefined && fieldPosition !== undefined) {
+    const [remaining, component] = decodeComponent(
+      value,
+      [
+        msg[0].encodingCharacters.componentSep,
+        msg[0].encodingCharacters.subComponentSep,
+      ],
+      msg[0]
+    )
+    if (remaining !== '') {
+      // TODO: return more information, custom error/logging?
+      console.warn('Leftover hl7 after decoding Component')
+    }
+    return setComponent(
+      msg,
+      segmentName,
+      segmentIteration,
+      fieldPosition,
+      fieldIteration,
+      componentPosition,
+      component
+    )
+  }
+
+  if (fieldPosition !== undefined) {
+    const [remaining, field] = decodeField(
+      value,
+      [
+        msg[0].encodingCharacters.componentSep,
+        msg[0].encodingCharacters.subComponentSep,
+      ],
+      msg[0]
+    )
+    if (remaining !== '') {
+      // TODO: return more information, custom error/logging?
+      console.warn('Leftover hl7 after decoding Field')
+    }
+    if (isFieldRep(field)) {
+      return setFieldOrRep(
+        msg,
+        segmentName,
+        segmentIteration,
+        fieldPosition,
+        field as FieldRep
+      )
+    }
+    return setField(
+      msg,
+      segmentName,
+      segmentIteration,
+      fieldPosition,
+      fieldIteration,
+      field as Field
+    )
+  }
+  const segment = decodeSegment(value, msg[0])
+  return setSegment(msg, segmentName, segmentIteration, segment)
 }
