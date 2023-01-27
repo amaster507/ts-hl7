@@ -9,6 +9,7 @@ export const paths = (path?: string): Paths => {
     `^(?:${segRx})${repRx}?(?:${posRx}${repRx}?(?:${posRx}${posRx}?)?)?$`
   )
   const paths = path.match(pathRx)
+  if (paths === null) throw Error(`Could not parse path: ${path}`)
   const [
     ,
     segmentName,
@@ -18,6 +19,16 @@ export const paths = (path?: string): Paths => {
     componentPosition,
     subComponentPosition,
   ] = paths ?? []
+  if (segmentIteration === '0')
+    throw Error(`Segment Iteration in path ${path} cannot be 0.`)
+  if (fieldPosition === '0')
+    throw Error(`Field Position in path ${path} cannot be 0.`)
+  if (fieldIteration === '0')
+    throw Error(`Field Iteration in path ${path} cannot be 0.`)
+  if (componentPosition === '0')
+    throw Error(`Component Position in path ${path} cannot be 0.`)
+  if (subComponentPosition === '0')
+    throw Error(`Sub Component Position in path ${path} cannot be 0.`)
   return {
     segmentName,
     segmentIteration:
