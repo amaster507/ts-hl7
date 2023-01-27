@@ -1,11 +1,29 @@
+import { env } from 'process'
 import Surreal from 'surrealdb.js'
-import { Credentials } from './surreal.config'
 
 // Install SurrealDB: https://surrealdb.com/install
 
+interface ICredentials {
+  user: string
+  pass: string
+}
+
+const { user, pass } = {
+  user: env.SURREALDB_USER,
+  pass: env.SURREALDB_PASS,
+}
+
 class DBStore {
   public db: Surreal
-  constructor(uri: string) {
+  private credentials: ICredentials
+  constructor(uri: string, credentials?: ICredentials) {
+    if (credentials !== undefined) {
+      this.credentials = credentials
+    } else if (!user || !pass) {
+      throw new Error('Missing credentials for SurrealDB')
+    } else {
+      this.credentials = { user, pass }
+    }
     this.db = new Surreal(uri)
   }
   public store = async <T extends Record<string, unknown>>(
@@ -16,7 +34,7 @@ class DBStore {
     id?: string
   ) => {
     try {
-      await this.db.signin(Credentials)
+      await this.db.signin(this.credentials)
 
       await this.db.use(namespace, database)
       const identifier = id ? `${table}:⟨${id}⟩` : table
@@ -39,7 +57,7 @@ class DBStore {
     update: T
   ) => {
     try {
-      await this.db.signin(Credentials)
+      await this.db.signin(this.credentials)
 
       await this.db.use(namespace, database)
       const identifier = `${table}:⟨${id}⟩`

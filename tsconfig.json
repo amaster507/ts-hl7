@@ -10,6 +10,6 @@
     "module": "commonjs",
     "resolveJsonModule": true,
   },
-  "include": ["src/**/*"],
-  "files": ["src/server.ts"]
+  "include": ["src/**/*", "server/server.config.ts", "server/index.ts", "stores"],
+  "files": ["server/index.ts"]
 }
