@@ -10,6 +10,8 @@ import {
   FieldRep,
   FieldsOrReps,
   Message,
+  MsgValue,
+  Paths,
   Segment,
   Segments,
 } from './types'
@@ -80,6 +82,25 @@ export class Msg {
   }
 
   private _paths = paths
+  private _toPath = ({
+    segmentName,
+    segmentIteration,
+    fieldPosition,
+    fieldIteration,
+    componentPosition,
+    subComponentPosition,
+  }: Paths): string => {
+    // build the path in reverse order
+    let path = ''
+    // TODO: check that the Path input validity (cannot have subComponentPosition without componentPosition, etc.)
+    if (subComponentPosition !== undefined) path = `.${subComponentPosition}`
+    if (componentPosition !== undefined) path = `.${componentPosition}${path}`
+    if (fieldIteration !== undefined) path = `[${fieldIteration}]${path}`
+    if (fieldPosition !== undefined) path = `-${fieldPosition}${path}`
+    if (segmentIteration !== undefined) path = `[${segmentIteration}]${path}`
+    if (segmentName !== undefined) path = `${segmentName}${path}`
+    return path
+  }
 
   public set = (path: string | undefined, value: string | null | undefined) => {
     if (typeof value !== 'string') value = ''
@@ -160,14 +181,51 @@ export class Msg {
 
   public map = <X = unknown>(
     path: string,
-    v: string | Record<string, string> | string[] | (<T = X>(v: T) => T)
+    v:
+      | string
+      | Record<string, string>
+      | string[]
+      | (<T extends X>(v: T, i: number) => T),
+    { iteration }: { iteration?: boolean } = {}
   ) => {
     if (typeof v === 'string') return this.set(path, v)
     if (typeof v === 'function') {
       const original = this.get(path)
-      let replacement = v(original)
-      if (typeof replacement !== 'string') replacement = replacement?.toString()
-      return this.set(path, replacement)
+      if (iteration && Array.isArray(original)) {
+        const paths = this._paths(path)
+        if (!paths.segmentIteration) {
+          // assume here that the array is a segment iteration
+          original.forEach((orig, i) => {
+            const replacement = v(orig as X, i + 1)
+            this.setJSON(
+              this._toPath({ ...paths, segmentIteration: i + 1 }),
+              replacement instanceof Seg
+                ? replacement.raw()
+                : (replacement as MsgValue)
+            )
+          })
+          return this
+        }
+        if (!paths.fieldIteration) {
+          // assume here that the array is a field iteration
+          original.forEach((orig, i) => {
+            const replacement = v(orig as X, i + 1)
+            this.setJSON(
+              this._toPath({ ...paths, fieldIteration: i + 1 }),
+              replacement instanceof Seg
+                ? replacement.raw()
+                : (replacement as MsgValue)
+            )
+          })
+          return this
+        }
+      }
+      const replacement = v(original as X, 1)
+      if (replacement instanceof Seg) {
+        this.setJSON(path, replacement.raw())
+      }
+      // if (typeof replacement !== 'string') replacement = replacement?.toString()
+      return this.setJSON(path, replacement as MsgValue)
     }
     const original = this.get(path)?.toString() ?? ''
     if (Array.isArray(v)) {
@@ -189,26 +247,25 @@ export class Msg {
     return this.set(path, v?.[original] ?? '')
   }
 
-  // public setIteration = <T = unknown>(
-  //   path: string,
-  //   map: string[] | ((val: T, i: number) => T),
-  //   options?: { allowLoop: boolean }
-  // ) =>
-  //   this.map<T>(path, (val) => {
-  //     // if (Array.isArray(val)) {
-  //     //   console.log(val)
-  //     //   // return val.map((v, i) => {
-  //     //   //   if (typeof map === 'function') {
-  //     //   //     return map(v, i)
-  //     //   //   }
-  //     //   //   // to do ...
-  //     //   //   return v
-  //     //   // })
-  //     //   // return ['a', 'b', 'c'] as T
-  //     // }
-  //     console.log(val)
-  //     return val
-  //   })
+  public setIteration = <Y>(
+    path: string,
+    map: Y[] | ((val: Y, i: number) => Y),
+    options?: { allowLoop: boolean }
+  ) =>
+    this.map<Y>(
+      path,
+      (val, i) => {
+        if (Array.isArray(map)) {
+          i = i - 1
+          if (options?.allowLoop) {
+            i = i % map.length
+          }
+          return map?.[i] as typeof val
+        }
+        return map(val, i) as typeof val
+      },
+      { iteration: true }
+    )
 }
 
 export default Msg

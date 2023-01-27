@@ -110,15 +110,51 @@ test('Set LAN-4 Raw', () => {
   ).toStrictEqual(['3', 'FAIR', 'HL70404'])
 })
 
-// test('Set Iteration', () => {
-//   msg
-//     .delete('LAN')
-//     .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
-//     .addSegment('LAN|2|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
-//     .addSegment('LAN|3|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
-//     .setIteration<string>('LAN-1', ['9','8','7'])
-//     // .setIteration<string>('LAN-1', (_v,i) => {
-//     //   return (i+i).toString()
-//     // }, { allowLoop: true })
-//   expect((msg.get('LAN-1'))).toBe("")
-// })
+test('Set Iteration', () => {
+  msg
+    .delete('LAN')
+    .addSegment('LAN|9|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
+    .addSegment('LAN|8|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
+    .addSegment('LAN|7|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+    .map(
+      'LAN-1',
+      (_v, i) => {
+        return i.toString() as typeof _v
+      },
+      { iteration: true }
+    )
+  expect(msg.get('LAN-1')).toEqual(['1', '2', '3'])
+})
+
+test('Set Iteration with looping array', () => {
+  msg
+    .delete('LAN')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
+    .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+  // const c = msg.getSegments('LAN').length
+  msg.setIteration<string>('LAN-1', ['A', 'B'], { allowLoop: true })
+  expect(msg.get('LAN-1')).toStrictEqual(['A', 'B', 'A'])
+})
+
+test('Set Iteration without looping array', () => {
+  msg
+    .delete('LAN')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
+    .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+  msg.setIteration<string>('LAN-1', ['9', '8'])
+  expect(msg.get('LAN-1')).toStrictEqual(['9', '8', undefined])
+})
+
+test('Set Iteration', () => {
+  msg
+    .delete('LAN')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
+    .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+  msg.setIteration<string>('LAN-1', (_v, i) => {
+    return i.toString()
+  })
+  expect(msg.get('LAN-1')).toStrictEqual(['1', '2', '3'])
+})
