@@ -4,6 +4,7 @@ import { decodeField } from '../decode/decodeField'
 import { decodeSegment } from '../decode/decodeSegment'
 import { decodeSubComponent } from '../decode/decodeSubComponent'
 import { Field, FieldRep, Message, Paths } from '../types'
+import { deleteSegment } from './deleteSegment'
 import { isFieldRep } from './isFieldRep'
 import { setComponent } from './setComponent'
 import { setField } from './setField'
@@ -114,6 +115,9 @@ export const setValue = (
       fieldIteration,
       field as Field
     )
+  }
+  if (value === '') {
+    return deleteSegment(msg, segmentName, segmentIteration)
   }
   const segment = decodeSegment(value, msg[0])
   return setSegment(msg, segmentName, segmentIteration, segment)
