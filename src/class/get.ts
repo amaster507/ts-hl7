@@ -1,5 +1,6 @@
 import Msg from '..'
-import { Component, Field } from '../types'
+import { Component, Field, FieldOrRep, FieldRep } from '../types'
+import { Seg } from './Segment'
 
 export const get = (
   msg: Msg,
@@ -9,17 +10,23 @@ export const get = (
   fieldIteration?: number | undefined,
   componentPosition?: number | undefined,
   subComponentPosition?: number | undefined
-) => {
+):
+  | string
+  | Seg
+  | { rep: true }
+  | (string | Seg | FieldRep | { rep: true } | Field[] | null | undefined)[]
+  | null
+  | undefined => {
   const ret = msg
-    .getSegments(segmentName)
+    .getSegments(segmentName) // Seg[]
     .filter((_, i) => {
       if (segmentIteration === undefined) return true
       return i === segmentIteration - 1
-    })
-    .map((seg) => {
-      if (fieldPosition === undefined) return seg
-      return seg.raw()?.[fieldPosition]
-    })
+    }) // Seg[]
+    .map<Seg | FieldOrRep>((seg) => {
+      if (fieldPosition === undefined) return seg // Seg
+      return seg.raw()?.[fieldPosition] as FieldOrRep // FieldOrRep
+    }) // Seg | FieldOrRep
     .map((field) => {
       if (
         Array.isArray(field) &&
@@ -68,7 +75,7 @@ export const get = (
           return comp
         return comp?.[subComponentPosition - 1]
       }
-      return field
+      return field // Seg | FieldOrRep
     })
   if (ret.length === 1) return ret[0]
   return ret

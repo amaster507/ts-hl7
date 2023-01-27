@@ -109,3 +109,16 @@ test('Set LAN-4 Raw', () => {
     msg.setJSON('LAN-4', ['3', 'FAIR', 'HL70404']).get('LAN-4')
   ).toStrictEqual(['3', 'FAIR', 'HL70404'])
 })
+
+// test('Set Iteration', () => {
+//   msg
+//     .delete('LAN')
+//     .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
+//     .addSegment('LAN|2|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
+//     .addSegment('LAN|3|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+//     .setIteration<string>('LAN-1', ['9','8','7'])
+//     // .setIteration<string>('LAN-1', (_v,i) => {
+//     //   return (i+i).toString()
+//     // }, { allowLoop: true })
+//   expect((msg.get('LAN-1'))).toBe("")
+// })

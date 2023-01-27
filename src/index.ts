@@ -68,7 +68,9 @@ export class Msg {
 
   public addSegment = (segment: string | Segment) => {
     const newSeg = addSegment(segment, this.msg)
-    if (newSeg === false) return false
+    if (newSeg === false) {
+      throw new Error('Could not addSegment')
+    }
     this.msg = newSeg
     return this
   }
@@ -156,9 +158,9 @@ export class Msg {
     this.set(toPath, this.get(fromPath)?.toString()).delete(fromPath)
   }
 
-  public map = (
+  public map = <X = unknown>(
     path: string,
-    v: string | Record<string, string> | string[] | (<T = unknown>(v: T) => T)
+    v: string | Record<string, string> | string[] | (<T = X>(v: T) => T)
   ) => {
     if (typeof v === 'string') return this.set(path, v)
     if (typeof v === 'function') {
@@ -186,6 +188,27 @@ export class Msg {
     }
     return this.set(path, v?.[original] ?? '')
   }
+
+  // public setIteration = <T = unknown>(
+  //   path: string,
+  //   map: string[] | ((val: T, i: number) => T),
+  //   options?: { allowLoop: boolean }
+  // ) =>
+  //   this.map<T>(path, (val) => {
+  //     // if (Array.isArray(val)) {
+  //     //   console.log(val)
+  //     //   // return val.map((v, i) => {
+  //     //   //   if (typeof map === 'function') {
+  //     //   //     return map(v, i)
+  //     //   //   }
+  //     //   //   // to do ...
+  //     //   //   return v
+  //     //   // })
+  //     //   // return ['a', 'b', 'c'] as T
+  //     // }
+  //     console.log(val)
+  //     return val
+  //   })
 }
 
 export default Msg
