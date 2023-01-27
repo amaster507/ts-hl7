@@ -99,6 +99,14 @@ export type FuncDecodeRepSep<R extends RepType, S extends OneOrMany<R>> = (
   callback: (hl7: string, stopChars: string[]) => [hl7: string, value: S]
 ) => [hl7: string, ...value: (OneOrMany<S> | null | undefined)[]]
 
+export type MsgValue =
+  | Message
+  | Segments
+  | Segment
+  | FieldsOrReps
+  | FieldRep
+  | Field
+
 export interface ServerConfig {
   port: number
   host: string

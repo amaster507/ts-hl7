@@ -3,11 +3,10 @@ import {
   Component,
   Field,
   FieldRep,
-  FieldsOrReps,
   Message,
+  MsgValue,
   Paths,
   Segment,
-  Segments,
   SubComponent,
 } from '../types'
 import { isFieldRep } from './isFieldRep'
@@ -26,7 +25,7 @@ import { setSubComponent } from './setSubComponent'
 
 export const setJSON = (
   msg: Msg,
-  json: Message | Segments | Segment | FieldsOrReps | FieldRep | Field,
+  json: MsgValue,
   {
     segmentName,
     segmentIteration,
