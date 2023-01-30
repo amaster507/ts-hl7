@@ -22,9 +22,10 @@
     "build:types": "node tools/cleanup types && tsc -p config/tsconfig.types.json",
     "build:umd": "node tools/cleanup umd && webpack --config config/webpack.config.js",
     "clean": "node tools/cleanup",
-    "server": "nodemon server.ts",
+    "dev-server": "nodemon -r dotenv/config server/index.ts",
     "test": "jest --no-cache --runInBand",
-    "dev-test": "nodemon -x \"npm test\" -e ts,js,json"
+    "dev-test": "nodemon -x \"npm test\" -e ts,js,json",
+    "lint": "eslint"
   },
   "publishConfig": {
     "access": "public"
