@@ -24,7 +24,8 @@
     "clean": "node tools/cleanup",
     "dev-server": "nodemon -r dotenv/config server/index.ts",
     "test": "jest --no-cache --runInBand",
-    "dev-test": "nodemon -x \"npm test\" -e ts,js,json"
+    "dev-test": "nodemon -x \"npm test\" -e ts,js,json",
+    "lint": "eslint"
   },
   "publishConfig": {
     "access": "public"

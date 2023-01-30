@@ -2,16 +2,23 @@ import net from 'net'
 import Msg from '../src'
 import stores from '../stores'
 import config from './channels'
+import { StoreConfig } from './types'
 
 // FIXME: move the server to a separate package/repo from the ts-hl7 library.
 
 config.forEach((c) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const store = Object.keys(c.store ?? {})?.[0] as keyof StoreConfig | undefined
+  const storeConfig = store === undefined ? undefined : c.store?.[store]
   // const DB =
   //   Object.keys(c.store ?? {})?.[0] === undefined
   //     ? undefined
   //     : stores[Object.keys(c.store ?? {})[0]]
-  const DB = undefined
-  const db = DB === undefined ? undefined : new DB(c.store)
+  const DB = store === undefined ? undefined : stores[store]
+  const db =
+    DB === undefined || storeConfig === undefined
+      ? undefined
+      : new DB(storeConfig)
   if (db === undefined) {
     console.warn(`No database store configured for ${c.name}`)
   }

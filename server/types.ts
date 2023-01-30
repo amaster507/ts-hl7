@@ -25,7 +25,7 @@ export interface ServerConfig {
   route?: ServerRoute[]
 }
 
-type StoreConfig = RequireOnlyOne<{
+export type StoreConfig = RequireOnlyOne<{
   file: StoreOptions['file']
   surreal: StoreOptions['surreal']
 }>

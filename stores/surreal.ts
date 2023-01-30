@@ -42,16 +42,7 @@ class DBStore {
     }
     this.db = new Surreal(uri)
   }
-  public store: StoreFunc<Msg, StoreOptions> = async (
-    data,
-    {
-      table = 'test',
-      namespace = 'test',
-      database = 'test',
-      verbose = false,
-    } = {},
-    id?: string
-  ) => {
+  public store: StoreFunc = async (data, id?: string) => {
     try {
       await this.db.signin(this.credentials)
 
