@@ -1,10 +1,17 @@
 import { ServerConfig } from '../types'
 
-const MyChannel: ServerConfig = {
-  name: 'HL7 Receiver',
+const Channel: ServerConfig = {
+  name: 'MyChannel',
   organization: '$MSH-5',
-  host: '10.3.54.120',
+  host: '192.168.15.201',
   port: 9001,
+  store: {
+    file: {
+      rootPath: 'local',
+      path: ['$MSH-9.1'],
+      id: '$MSH-10.1',
+    },
+  },
 }
 
-export default MyChannel
+export default Channel

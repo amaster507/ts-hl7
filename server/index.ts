@@ -6,9 +6,12 @@ import config from './channels'
 // FIXME: move the server to a separate package/repo from the ts-hl7 library.
 
 config.forEach((c) => {
-  const DB = c.store?.type === undefined ? undefined : stores[c.store.type]
-  const db =
-    DB === undefined || !c.store?.uri ? undefined : new DB(c.store?.uri)
+  // const DB =
+  //   Object.keys(c.store ?? {})?.[0] === undefined
+  //     ? undefined
+  //     : stores[Object.keys(c.store ?? {})[0]]
+  const DB = undefined
+  const db = DB === undefined ? undefined : new DB(c.store)
   if (db === undefined) {
     console.warn(`No database store configured for ${c.name}`)
   }
@@ -58,39 +61,46 @@ config.forEach((c) => {
       const msg = new Msg(hl7)
       const _id = msg.get('MSH-10')
 
-      let table = 'msg'
-      if (c.store?.table?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
-        table = (msg.get(c.store.table.slice(1)) as string) || 'msg'
-      } else if (c.store?.table !== undefined) {
-        table = c.store.table
-      }
+      const name = c.name.match(/^\$[A-Z][A-Z0-9]{2}/)
+        ? (msg.get(c.name.slice(1)) as string) || c.name
+        : c.name
+
+      const organization = c.organization.match(/^\$[A-Z][A-Z0-9]{2}/)
+        ? (msg.get(c.organization.slice(1)) as string) || c.organization
+        : c.organization
+
+      // let table = 'msg'
+      // if (c.store?.table?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
+      //   table = (msg.get(c.store.table.slice(1)) as string) || 'msg'
+      // } else if (c.store?.table !== undefined) {
+      //   table = c.store.table
+      // }
 
       let namespace = 'test'
-      if (c.store?.namespace?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
-        namespace = (msg.get(c.store.namespace.slice(1)) as string) || 'msg'
-      } else if (c.store?.namespace !== undefined) {
-        namespace = c.store.namespace
-      }
+      // if (c.store?.namespace?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
+      //   namespace = (msg.get(c.store.namespace.slice(1)) as string) || 'msg'
+      // } else if (c.store?.namespace !== undefined) {
+      //   namespace = c.store.namespace
+      // }
 
       let database = 'test'
-      if (c.store?.database?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
-        database = (msg.get(c.store.database.slice(1)) as string) || 'msg'
-      } else if (c.store?.database !== undefined) {
-        database = c.store.database
-      }
+      // if (c.store?.database?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
+      //   database = (msg.get(c.store.database.slice(1)) as string) || 'msg'
+      // } else if (c.store?.database !== undefined) {
+      //   database = c.store.database
+      // }
 
-      let id: string | undefined = undefined
-      if (c.store?.id?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
-        id = msg.get(c.store.id.slice(1)) as string
-      } else if (c.store?.id !== undefined) {
-        id = c.store.id
-      }
+      // let id: string | undefined = undefined
+      // if (c.store?.id?.match(/^\$[A-Z][A-Z0-9]{2}/)) {
+      //   id = msg.get(c.store.id.slice(1)) as string
+      // } else if (c.store?.id !== undefined) {
+      //   id = c.store.id
+      // }
 
       db?.store?.(
-        { meta: msg.raw()[0], msg: msg.raw()?.[1] },
-        table,
-        namespace,
-        database,
+        // { meta: msg.raw()[0], msg: msg.raw()?.[1] },
+        msg,
+        { table, namespace, database },
         id
       )
       let res: 'AA' | 'AE' | 'AR' = 'AE' // AR = Application Accept, AE = Application Error, AR = Application Reject
@@ -101,7 +111,7 @@ config.forEach((c) => {
         // send nack
         res = 'AR'
       }
-      const ack = `MSH|^~\\&|${c.name}|${c.organization}|||${new Date()
+      const ack = `MSH|^~\\&|${name}|${organization}|||${new Date()
         .toUTCString()
         .replace(/[^0-9]/g, '')
         .slice(0, -3)}||ACK|${_id}|P|2.5.1|\nMSA|${res}|${_id}`

@@ -1,5 +1,5 @@
-import surreal from './surreal'
-import file from './file'
+import surreal, { IDBStoreOptions as surrealOpts } from './surreal'
+import file, { IDBStoreOptions as fileOpts } from './file'
 // import dgraph from './dgraph'
 
 // TODO: add more stores,
@@ -32,6 +32,11 @@ const stores = {
   // mongo,
   // postgres,
   // mysql,
+} as const
+
+export interface StoreOptions {
+  file: fileOpts
+  surreal: surrealOpts
 }
 
 export type Store = keyof typeof stores
