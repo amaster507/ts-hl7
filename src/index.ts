@@ -175,9 +175,8 @@ export class Msg {
   public copy = (fromPath: string, toPath: string) =>
     this.set(toPath, this.get(fromPath)?.toString())
 
-  public move = (fromPath: string, toPath: string) => {
+  public move = (fromPath: string, toPath: string) =>
     this.set(toPath, this.get(fromPath)?.toString()).delete(fromPath)
-  }
 
   public map = <X = unknown>(
     path: string,
