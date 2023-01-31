@@ -238,7 +238,7 @@ The `Msg` class has built methods for transforming the message. This package cur
 
 The Transformer functions return the class itself allowing for the transformers to be chained in sequence. (`msg.addSegment('ZZZ||').set('ZZZ.1', '1').copy('ZZZ.1', 'ZZZ.2')`)
 
-For the (gofer)[https://github.com/amaster507/gofer] Engine, a channel's config accepts a transformer function that receives the `Msg` class, and should return the transformed class. Example:
+For the [gofer](https://github.com/amaster507/gofer) Engine, a channel's config accepts a transformer function that receives the `Msg` class, and should return the transformed class. Example:
 
 ```ts
 import Msg from './src/'
@@ -326,4 +326,4 @@ export const MyTransformer = (msg: Msg): Msg =>
 - [ ] (TODO: move to hl7-stores) ~~Add support for message storage deduplication (e.g. to store only unique strings in the database to conserve space)~~
 - [ ] Add support for FHIR
 - [ ] (TODO: move to hl7-stores) ~~Add support to query the message stores using REST/GraphQL APIs~~
-- [x] (NOTE: see (gofer)[https://github.com/amaster507/gofer]) Rebrand/Market as a HL7 Interface Engine
+- [x] (NOTE: see [gofer](https://github.com/amaster507/gofer) Rebrand/Market as a HL7 Interface Engine
