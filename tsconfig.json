@@ -6,10 +6,10 @@
     "esModuleInterop": true,
     // "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */
     "sourceMap": true,
-    "outDir": "dist/server/",
+    "outDir": "dist/",
     "module": "commonjs",
     "resolveJsonModule": true,
+    "declaration": true,
   },
-  "include": ["src/**/*", "server/server.config.ts", "server/index.ts", "stores"],
-  "files": ["server/index.ts"]
+  "include": ["src/*"]
 }
