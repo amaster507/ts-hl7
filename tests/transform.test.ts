@@ -40,14 +40,14 @@ msg
       ZZZ: true,
     },
   })
-  .addSegment('ZZZ|Engine|HL7-JSON')
+  .addSegment('ZZZ|Engine|gofer')
 
 const expected = `MSH|^~\\&|HL7REG|UH|HL7LAB|CH|200702280700||PMU^B01^PMU_B01|MSGID002|P|2.5.1|
 STF||U2246^^^PLW~111223333^^^USSSA|||M|||||(555)555-1003X345^C^O|3029 HEALTHCARE DRIVE^^ANNARBOR^MI^98198^O|||||
 LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403|1^EXCELLENT^HL70404|
 EDU||BA^BACHELOR OF ARTS|19810901^19850601|YALE UNIVERSITY^L|U^HL70402|456 CONNECTICUT AVENUE^^NEW HAVEN^CO^87654^U.S.A.^M|
 EDU||MD^DOCTOR OF MEDICINE||HARVARD MEDICAL SCHOOL^L |M^HL70402|123 MASSACHUSETTS AVENUE^CAMBRIDGE^MA^76543^U.S.A.^M|
-ZZZ|Engine|HL7-JSON`
+ZZZ|Engine|gofer`
 
 test('Transformers', () => {
   expect(msg.toString()).toBe(expected)
@@ -61,9 +61,9 @@ test('Set Developer ZZZ', () => {
 })
 
 test('Set Sending App MSH.3', () => {
-  msg.set('MSH.3', 'I14Y ENGINE')
+  msg.set('MSH.3', 'GOFER')
   expect(msg.getSegment('MSH').toString()).toBe(
-    'MSH|^~\\&|I14Y ENGINE|UH|HL7LAB|CH|200702280700||PMU^B01^PMU_B01|MSGID002|P|2.5.1|'
+    'MSH|^~\\&|GOFER|UH|HL7LAB|CH|200702280700||PMU^B01^PMU_B01|MSGID002|P|2.5.1|'
   )
 })
 
@@ -132,7 +132,6 @@ test('Set Iteration with looping array', () => {
     .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
     .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
     .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
-  // const c = msg.getSegments('LAN').length
   msg.setIteration<string>('LAN-1', ['A', 'B'], { allowLoop: true })
   expect(msg.get('LAN-1')).toStrictEqual(['A', 'B', 'A'])
 })
