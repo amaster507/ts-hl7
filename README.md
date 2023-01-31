@@ -12,7 +12,7 @@ const HL7 = fs.readFileSync('./sample.hl7', 'utf8')
 
 const msg = new Msg(HL7)
 
-console.log(msg.msg)
+console.log(msg.raw())
 ```
 
 ## Encoding a HL7 Message JSON object will return a HL7 string
@@ -208,6 +208,7 @@ console.log('STF[1]-10[1]:', msg.get('STF[1]-10[1]'))
 console.log('STF-10[1]:', msg.get('STF-10[1]'))
 console.log('STF-10.1:', msg.get('STF-10.1'))
 console.log('STF.10.1:', msg.get('STF.10.1'))
+console.log('LAN:', msg.get('LAN'))
 console.log('LAN-2.1:', msg.get('LAN-2.1'))
 console.log('LAN[1]-2.1:', msg.get('LAN[1]-2.1'))
 console.log('LAN-2:', msg.get('LAN-2'))
@@ -217,34 +218,112 @@ console.log('ZZZ-2.2.1', msg.get('ZZZ-2.2.1'))
 
 Unless a path is fully defined including all repetition indexes, then the type returned could be an array or a string.
 
+## Transforming an HL7 Message
+
+The `Msg` class has built methods for transforming the message. This package currently supports transformation scenarios:
+
+- Restricting the Message down to only a subset Segments, Fields, Components, and SubComponents using object notation. (`msg.transform({ restrict: { ... } })`)
+- Removing specified Segments, Fields, Components, and SubComponents using object notation. (`msg.transform({ remove: { ... } })`)
+- Adding new Segment strings. (`msg.addSegment(...)`)
+- Setting HL7 path with encoded string. (`msg.set('LAN-2', 'ENG^ENGLISH^ISO639')`)
+- Setting HL7 path with decoded JSON. (`msg.setJSON('LAN-4', ['3', 'FAIR', 'HL70404'])`)
+- Copy from HL7 path to a new HL7 path. (`msg.copy('ZZZ-1', 'ZZZ-3')`)
+- Delete value at HL7 path. (`msg.delete('ZZZ-2')`)
+- Move from HL7 path to a new HL7 path. Sets origin to `undefined`. (`msg.move('ZZZ-3', 'ZZZ-4')`)
+- Dictionary Map an HL7 path using a key-value object. (`msg.map('LAN-2.2', { ENGLISH: 'English' })`)
+- Integer Map an HL7 path using an array. _Array is treated as 1-based indexed._ (`msg.map('LAN-4.1', ['Excellent', 'Fair', 'Poor'])`)
+- Function Map an HL7 path using a custom defined function that receives the original value and returns the new value. (`msg.map('ZZZ-1', (orig) => orig.toUpperCase())`)
+- Iteration Map an iterated HL7 path using an array. (`msg.setIteration('LAN-1', ['A', 'B', 'C'])`)
+- Iteration Map an iterated HL7 path using an custom defined function that received the original value, and the iteration key and returns the new value. _Useful for renumbering segments._ (`msg.setIteration('LAN-1', (_v, i) => i.toString())`)
+
+The Transformer functions return the class itself allowing for the transformers to be chained in sequence. (`msg.addSegment('ZZZ||').set('ZZZ.1', '1').copy('ZZZ.1', 'ZZZ.2')`)
+
+For the (gofer)[https://github.com/amaster507/gofer] Engine, a channel's config accepts a transformer function that receives the `Msg` class, and should return the transformed class. Example:
+
+```ts
+import Msg from './src/'
+
+export const MyTransformer = (msg: Msg): Msg =>
+  msg
+    .transform({
+      restrict: {
+        MSH: () => true, // if function equates to true, keep whole segment
+        LAN: 3, // an integer keeps only the nth iteration of the segment (LAN[3])
+        ZZZ: { // an object keeps only certain fields of the segment
+          1: true, // true keeps the entire field as is (ZZZ-1)
+          2: [1, 5] // an array keeps only certain components of the field (ZZZ-2.1, ZZZ-2.5)
+        },
+        STF: {
+          2: [1, 4],
+          3: [], // an empty array keeps no components, same as if key was undefined
+          4: [2],
+          5: true,
+          10: 1, // an integer keeps only the nth repeition of the field
+          11: (f) => f?.[5] === 'O' // f is 0-indexed. This is keeping only the repetition that has STF-11.6 === 'O'
+        },
+        EDU: true, // if true, keep whole segment as is
+        // Any segments not specifically listed in a `restrict` object are removed.
+      },
+      remove: {
+        LAN: 2,
+        EDU: {
+          1: true, // deletes EDU-1
+          2: [3], // deletes EDU-2.3
+          3: (f) => {
+            if (Array.isArray(f) && typeof f[0] === 'string')
+              return f[0] > '19820000'
+            return false
+          }, // A function deletes when returns true. This is deleting EDU-3 when EDU-3.1 is greater than the year 1982
+          4: 2 // deletes EDU-4[2]
+        }
+      }
+    })
+    .addSegment('ZZZ|Engine|gofer')
+    .copy('ZZZ-2', 'MSH-3')
+    .set('ZZZ-1', 'Developer')
+    .set('ZZZ-2', 'amaster507')
+    .delete('LAN')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
+    .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+    .setIteration<string>('LAN-1', (_v, i) => i.toString())
+    .move('LAN[1]-3[2]', 'LAN[1]-4')
+    .move('LAN[2]-3[2]', 'LAN[2]-4')
+    .move('LAN[3]-3[2]', 'LAN[3]-4')
+    .map('LAN-4.2', {
+      EXCELLENT: 'BEST',
+      GOOD: 'BETTER',
+      FAIR: 'GOOD',
+    })
+
+```
+
 # Roadmap
 
-- [ ] Build more tests for the parser and debug any issues
-- [ ] Add support for message storage with a database (make storage a plugin to support a variety of db engines like: MongoDB, MySQL, SQL Server, AnnaDB, Dgraph, TypeDB, EdgeDB, etc)
-- [ ] Add support for message transformation (e.g. moving, copying, deleting, writing values from one place holder/value in the message to another)
-- [ ] Add support to configure message receivers via TCP and possibly other protocols (e.g. HTTP, HTTPS, SFTP, MQTT, Websocket, etc)
-- [ ] Add support for jobs (e.g. schedule a job to run at a specific time, or run a job every X minutes/hours/days/weeks/months/years)
-  - [ ] Add support for jobs to read from a database
-  - [ ] Add support for jobs to read files
-- [ ] Add support for message/job routing (e.g. to send a message to a specific destination based on the message content or pre-defined rules)
-  - [ ] Route messages to a database
-  - [ ] Route messages to a file
-  - [ ] Route messages to a TCP endpoint
-  - [ ] Route messages to a HTTP endpoint
-  - [ ] Route messages to a HTTPS endpoint
-  - [ ] Route messages to a SFTP endpoint
-  - [ ] Route messages to a MQTT endpoint
-  - [ ] Route messages to a Websocket endpoint
-  - [ ] Route messages to Email alert
-  - [ ] Route messages to SMS alert
-  - [ ] Route messages to Discord alert
-- [ ] Add support for message filtering (e.g. to filter a message based on a set of rules prior to receiving/sending/transformation)
-- [ ] Add support for user management (e.g. to manage users, roles, permissions, etc)
-- [ ] Add support for audit logging (e.g. to log all actions performed by users)
+- [x] Build more tests for the parser and debug any issues
+- [x] Add support for message transformation (e.g. moving, copying, deleting, writing values from one place holder/value in the message to another)
+- [ ] (TODO: move to gofer) ~~Add support for jobs (e.g. schedule a job to run at a specific time, or run a job every X minutes/hours/days/weeks/months/years)~~
+  - [ ] (TODO: move to gofer) ~~Add support for jobs to read from a database~~
+  - [ ] (TODO: move to gofer) ~~Add support for jobs to read files~~
+- [ ] (TODO: move to gofer) ~~Add support for message/job routing (e.g. to send a message to a specific destination based on the message content or pre-defined rules)~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a database~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a file~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a TCP endpoint~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a HTTP endpoint~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a HTTPS endpoint~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a SFTP endpoint~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a MQTT endpoint~~
+  - [ ] (TODO: move to gofer) ~~Route messages to a Websocket endpoint~~
+  - [ ] (TODO: move to gofer) ~~Route messages to Email alert~~
+  - [ ] (TODO: move to gofer) ~~Route messages to SMS alert~~
+  - [ ] (TODO: move to gofer) ~~Route messages to Discord alert~~
+- [x] (TODO: move to gofer) ~~Add support for message filtering (e.g. to filter a message based on a set of rules prior to receiving/sending/transformation)~~
+- [ ] (TODO: move to gofer) ~~Add support for user management (e.g. to manage users, roles, permissions, etc)~~
+- [ ] (TODO: move to gofer) ~~Add support for audit logging (e.g. to log all actions performed by users)~~
 - [ ] Add support for message validation (e.g. to validate a message against a schema)
 - [ ] Add support for message encryption (e.g. to encrypt a message using a public/private key)
 - [ ] Add support for message compression (e.g. to compress a message using a variety of compression algorithms)
-- [ ] Add support for message storage deduplication (e.g. to store only unique strings in the database to conserve space)
+- [ ] (TODO: move to hl7-stores) ~~Add support for message storage deduplication (e.g. to store only unique strings in the database to conserve space)~~
 - [ ] Add support for FHIR
-- [ ] Add support to query the message stores using REST/GraphQL APIs
-- [ ] Rebrand/Market as a HL7 Interface Engine
+- [ ] (TODO: move to hl7-stores) ~~Add support to query the message stores using REST/GraphQL APIs~~
+- [x] (NOTE: see (gofer)[https://github.com/amaster507/gofer]) Rebrand/Market as a HL7 Interface Engine
