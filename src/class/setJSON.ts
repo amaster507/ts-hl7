@@ -1,4 +1,4 @@
-import Msg from '..'
+import Msg from './Message'
 import {
   Component,
   Field,

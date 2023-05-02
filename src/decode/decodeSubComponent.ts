@@ -6,5 +6,7 @@ export const decodeSubComponent = (
   sc: string[]
 ): [remaining: string, value: SubComponent] => {
   const i = findCharsFirstPos(input, sc)
-  return [input.slice(i), input.slice(0, i)]
+  const sliced = input.slice(0, i)
+  const val = sliced === '' ? null : sliced
+  return [input.slice(i), val]
 }

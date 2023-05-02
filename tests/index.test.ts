@@ -2,6 +2,9 @@
 import fs from 'fs'
 import { Msg } from '../src'
 import HL7Json from '../sample.json'
+import { strictJSON } from './data'
+import { Fld } from '../src/class/Field'
+import { Cmp } from '../src/class/Component'
 
 const HL7 = fs.readFileSync('./sample.hl7', 'utf8')
 
@@ -199,15 +202,15 @@ const tests: Record<string, { path: string; expected: unknown }> = {
   PRA_7: {
     path: 'PRA-7',
     expected: [
-      [['ADMIT', 'T', 'ADT'], ['MED', '', 'L2'], '19941231'],
-      [['DISCH', '', 'ADT'], ['MED', '', 'L2'], '19941231'],
+      [['ADMIT', 'T', 'ADT'], ['MED', null, 'L2'], '19941231'],
+      [['DISCH', null, 'ADT'], ['MED', null, 'L2'], '19941231'],
     ],
   },
   PRA_7_1: {
     path: 'PRA-7.1',
     expected: [
       ['ADMIT', 'T', 'ADT'],
-      ['DISCH', '', 'ADT'],
+      ['DISCH', null, 'ADT'],
     ],
   },
   PRA_7_1_1: {
@@ -216,7 +219,7 @@ const tests: Record<string, { path: string; expected: unknown }> = {
   },
   PRA_7_1_2: {
     path: 'PRA-7.1.2',
-    expected: ['T', ''],
+    expected: ['T', null],
   },
   PRA_7first_1_2: {
     path: 'PRA-7[1].1.2',
@@ -233,7 +236,7 @@ test.each(testSuite)('$name', ({ name, path, expected }) => {
 })
 
 test('Get LAN Segment', () => {
-  expect(msg.getSegment('LAN').toString()).toBe(
+  expect(msg.getSegment('LAN', 1).toString()).toBe(
     'LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403|1^EXCELLENT^HL70404|'
   )
 })
@@ -261,7 +264,7 @@ test('Get STF-10[1].1 Component', () => {
 })
 
 test('Get raw msg', () => {
-  const raw = msg.raw()
+  const raw = msg.json()
   expect(JSON.stringify(raw, undefined, 2)).toBe(
     JSON.stringify(HL7Json, undefined, 2)
   )
@@ -276,13 +279,91 @@ test('New Empty Msg Class', () => {
   expect(msg.get('MSH-1')).toBe('|')
 })
 
-// test('New Msg Class By Array', () => {
-//   const m = msg.msg
-//   const msg2 = new Msg(m)
-//   expect(msg2.toString()).toBe(HL7)
-// })
+test('New Msg Class By Array', () => {
+  const m = msg.json()
+  const m2 = new Msg(m)
+  expect(m2.toString()).toBe(HL7)
+})
 
 test('Add Segment', () => {
   msg.addSegment(['NTE', '1', 'This is a comment'])
   expect(msg.get('NTE-2')).toBe('This is a comment')
+})
+
+const msg2 = new Msg(
+  'MSH!@#$%^!HL7REG!UH!HL7LAB!CH!200702280700!!PMU@B01@PMU_B01!MSGID002!P!2.8!'
+)
+
+test('Encoding Characters', () => {
+  const encodingChars = msg2.json(true).meta.encodingCharacters
+  expect(encodingChars).toStrictEqual({
+    fieldSep: '!',
+    componentSep: '@',
+    repetitionSep: '#',
+    escapeChar: '$',
+    subComponentSep: '%',
+    truncateChar: '^',
+  })
+})
+
+test('Custom Encoding Get', () => {
+  expect(msg2.get('MSH-9.3')).toBe('PMU_B01')
+})
+
+test('Custom Encoding Stingify', () => {
+  expect(msg2.toString()).toBe(
+    'MSH!@#$%^!HL7REG!UH!HL7LAB!CH!200702280700!!PMU@B01@PMU_B01!MSGID002!P!2.8!'
+  )
+})
+
+test('getStrictJSON', () => {
+  expect(new Msg(HL7).json(true)).toStrictEqual(strictJSON)
+})
+
+test('fromStrictJSON', () => {
+  expect(new Msg(strictJSON).json()).toStrictEqual(new Msg(HL7).json())
+})
+
+// write files for manual comparison and debugging
+// fs.writeFileSync(
+//   './tests/StrictJSON_res.json',
+//   sortify(new Msg(HL7).json(true)) ?? ''
+// )
+// fs.writeFileSync('./tests/StrictJSON_exp.json', sortify(strictJSON) ?? '')
+
+test('Deeply Nested LAN Values', () => {
+  const deepValues = new Msg(HL7)
+    .getSegment('LAN')
+    .getFields()
+    .map((f: Fld | Fld[]) => {
+      const mapper = (c: Cmp) => c.getSubComponents().map((s) => s.toString())
+      if (Array.isArray(f)) {
+        return f.map((f) => f.getComponents().map(mapper))
+      }
+      return f.getComponents().map(mapper)
+    })
+  const exp = [
+    [
+      [['1']],
+      [['ESL'], ['SPANISH'], ['ISO639']],
+      [['1'], ['READ'], ['HL70403']],
+      [['1'], ['EXCELLENT'], ['HL70404']],
+      [['']],
+    ],
+    [
+      [['2']],
+      [['ESL'], ['SPANISH'], ['ISO639']],
+      [['2'], ['WRITE'], ['HL70403']],
+      [['2'], ['GOOD'], ['HL70404']],
+      [['']],
+    ],
+    [
+      [['3']],
+      [['FRE'], ['FRENCH'], ['ISO639']],
+      [['3'], ['SPEAK'], ['HL70403']],
+      [['3'], ['FAIR'], ['HL70404']],
+      [['']],
+    ],
+  ]
+  expect(deepValues).toEqual(exp)
 })

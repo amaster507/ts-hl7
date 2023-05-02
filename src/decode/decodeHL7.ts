@@ -17,7 +17,7 @@ export const decodeHL7: FuncDecodeHL7 = (HL7, encoding = undefined) => {
           fieldSep: '|',
           repetitionSep: '~',
           subComponentSep: '&',
-          subCompRepSep: undefined,
+          truncateChar: undefined,
         }
   const meta: MessageMeta = {
     encodingCharacters,

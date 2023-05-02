@@ -55,7 +55,7 @@ export interface MessageMeta {
     subComponentSep: string
     repetitionSep: string
     escapeChar: string
-    subCompRepSep?: string
+    truncateChar?: string
   }
 }
 export type Message = [MessageMeta, ...Segments[]]
@@ -113,3 +113,65 @@ export interface Paths {
   componentPosition?: number
   subComponentPosition?: number
 }
+
+type StrictEncodingCharacters = {
+  fieldSep: string
+  componentSep: string
+  subComponentSep: string
+  repetitionSep: string
+  escapeChar: string
+  truncateChar?: string
+}
+
+type StrictMessageMeta = {
+  version?: string
+  messageCode?: string
+  triggerEvent?: string
+  messageStructure?: string
+  messageControlId?: string
+  encodedAt?: string
+  encodingCharacters: StrictEncodingCharacters
+}
+
+export type StrictSubComponent = {
+  position: number
+  value: string
+}
+
+export type StrictComponent = {
+  position: number
+  value: string
+  subComponents: StrictSubComponent[]
+}
+
+export type StrictFieldRepetition = {
+  position: number
+  components: StrictComponent[]
+  value: string
+}
+
+export type StrictField = {
+  position: number
+  value: string
+  repetitions: StrictFieldRepetition[]
+}
+
+export type StrictSegment = {
+  position: number
+  value: string
+  name: string
+  fields: StrictField[]
+}
+
+export type StrictMessage = {
+  meta: StrictMessageMeta
+  segments: StrictSegment[]
+}
+
+export type NoPos<T extends { position?: number }> = Omit<T, 'position'>
+
+export type IfTrueElse<
+  B extends boolean | undefined,
+  T,
+  E
+> = B extends undefined ? E : B extends true ? T : E

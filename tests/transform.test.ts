@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import fs from 'fs'
-import { Msg } from '../src'
+import Msg from '../src/class/Message'
 
 const HL7 = fs.readFileSync('./sample.hl7', 'utf8')
 

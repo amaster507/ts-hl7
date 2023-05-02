@@ -81,8 +81,8 @@
       ],
       [
         { "rep": true },
-        [["ADMIT", "T", "ADT"], ["MED", "", "L2"], "19941231"],
-        [["DISCH", "", "ADT"], ["MED", "", "L2"], "19941231"]
+        [["ADMIT", "T", "ADT"], ["MED", null, "L2"], "19941231"],
+        [["DISCH", null, "ADT"], ["MED", null, "L2"], "19941231"]
       ],
       null
     ],

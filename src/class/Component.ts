@@ -1,6 +1,12 @@
 import { encodeSep } from '../encode/encodeSep'
-import { Component } from '../types'
-import { Sub } from './SubComponent'
+import {
+  Component,
+  IfTrueElse,
+  NoPos,
+  StrictComponent,
+  StrictSubComponent,
+} from '../types'
+import { Sub, Subs } from './SubComponent'
 
 export class Cmp {
   private _cmp: Component
@@ -9,7 +15,31 @@ export class Cmp {
     this._cmp = component
   }
 
+  /**
+   * @deprecated replace with `json()`
+   */
   public raw = () => this._cmp
+
+  public json = <S extends boolean | undefined = undefined>(
+    strict?: S
+  ): IfTrueElse<S, NoPos<StrictComponent>, Component> => {
+    if (strict) {
+      const comp: NoPos<StrictComponent> = {
+        value: this.toString() ?? '',
+        subComponents: this.getSubComponents().map((s, i) => {
+          const subComponent: StrictSubComponent = {
+            position: i + 1,
+            ...s.json(true),
+          }
+          return subComponent
+        }),
+      }
+      // FIXME: finish this instead of returning null
+      return comp as IfTrueElse<S, NoPos<StrictComponent>, Component>
+    }
+    return this._cmp as IfTrueElse<S, NoPos<StrictComponent>, Component>
+  }
+
   public one = () => this
   public toString = ({ subCompSep = this._subCompSep } = {}): string => {
     this._subCompSep = subCompSep
@@ -23,6 +53,14 @@ export class Cmp {
     } else if (subComponentPosition > 1) return new Sub(null)
     return new Sub(this._cmp)
   }
+
+  public getSubComponents = (): Sub[] => {
+    if (this._cmp === null) return [new Sub(null)]
+    if (Array.isArray(this._cmp)) {
+      return this._cmp.map((sub) => new Sub(sub))
+    }
+    return [new Sub(this._cmp)]
+  }
 }
 
 export class Cmps {
@@ -33,7 +71,28 @@ export class Cmps {
     this._cmps = components
   }
 
-  public raw = () => this._cmps.map((c) => c.raw())
+  /**
+   * @deprecated replace with `json()`
+   */
+  public raw = () => this._cmps.map((c) => c.json())
+  public json = <S extends boolean | undefined = undefined>(
+    strict?: S
+  ): IfTrueElse<S, StrictComponent[], Component[]> => {
+    if (strict) {
+      const strictComponent: StrictComponent[] = this._cmps.map((c, i) => {
+        return {
+          position: i + 1,
+          ...c.json(true),
+        }
+      })
+      return strictComponent as IfTrueElse<S, StrictComponent[], Component[]>
+    }
+    return this._cmps.map((c) => c.json()) as IfTrueElse<
+      S,
+      StrictComponent[],
+      Component[]
+    >
+  }
 
   /**
    * In case where the field is a repeating field, this will `one` function gets only one of the fields
@@ -41,6 +100,7 @@ export class Cmps {
    * @returns a singular Component Class
    */
   public one = (iteration = 1) => this._cmps[iteration - 1] ?? new Cmp(null)
+  public all = () => this._cmps
 
   public toString = (
     { subCompSep = this._subCompSep, fieldRepSep = this._fieldRepSep } = {},
@@ -51,5 +111,17 @@ export class Cmps {
     const strings = this._cmps.map((c) => c.toString({ subCompSep }))
     if (stringify) return strings.join(fieldRepSep)
     return strings
+  }
+
+  public getSubComponent = (
+    subComponentPosition: number | undefined = 1
+  ): Subs => {
+    return new Subs(
+      this._cmps.map((c) => c.getSubComponent(subComponentPosition).json())
+    )
+  }
+
+  public getSubComponents = () => {
+    return this._cmps.map((c) => c.getSubComponents())
   }
 }

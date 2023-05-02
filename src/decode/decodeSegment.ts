@@ -2,6 +2,7 @@ import { FuncDecodeSegment, OneOrMany } from '../types'
 import { decodeField } from './decodeField'
 import { decodeRepSep } from './decodeRepSep'
 import { getEncodingChars } from './getEncodingChars'
+import { nthChar } from './nthChar'
 
 export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
   const name = HL7.match(new RegExp(`^([A-Z][A-Z0-9]{2})`))?.[1]
@@ -13,7 +14,8 @@ export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
   if (name === 'MSH') {
     isMSH = true
     meta.encodingCharacters = getEncodingChars(HL7.slice(0, 8))
-    HL7 = HL7.slice(Object.keys(meta.encodingCharacters).length)
+    const start = nthChar(HL7, meta.encodingCharacters.fieldSep, 2)
+    HL7 = HL7.slice(start + 1)
   } else if (HL7.startsWith(meta.encodingCharacters.fieldSep)) {
     HL7 = HL7.slice(1)
   }
@@ -34,13 +36,13 @@ export const decodeSegment: FuncDecodeSegment = (HL7, meta) => {
       repetitionSep,
       escapeChar,
       subComponentSep,
-      subCompRepSep,
+      truncateChar,
     } = meta.encodingCharacters
     if (!Array.isArray(fields)) throw Error('Expected array of fields')
     fields?.unshift(
       fieldSep,
       `${componentSep}${repetitionSep}${escapeChar}${subComponentSep}${
-        subCompRepSep ? subCompRepSep : ''
+        truncateChar ? truncateChar : ''
       }`
     )
   }

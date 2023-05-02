@@ -1,5 +1,5 @@
-import Msg from '..'
 import { Component, Field, FieldOrRep, FieldRep } from '../types'
+import Msg from './Message'
 import { Seg } from './Segment'
 
 export const get = (
