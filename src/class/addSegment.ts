@@ -1,17 +1,41 @@
 import decode from '../decode'
-import { Message, Segment } from '../types'
+import { isSegmentArray } from '../typeGuards'
+import { Message, Segment, Segments } from '../types'
+import { Seg, Segs } from './Segment'
+import { findSegmentInMsg } from './findSegmentPos'
 
-export const addSegment = (segment: string | Segment, msg: Message) => {
-  if (typeof segment === 'string') {
+export const addSegment = (segment: string | Segment | Segments | Seg | Segs, msg: Message, after?: number | string): Message | false => {
+  const segments: Segment[] = []
+  if (segment instanceof Seg) {
+    segments.push(segment.json())
+  } else if (segment instanceof Segs) {
+    segments.push(...segment.json())
+  } else if (typeof segment === 'string') {
     const seg = decode(segment)
     if (seg === undefined) {
       return false
     }
-    msg[1].push(...seg[1])
-    return msg
+    segments.push(...seg[1])
   } else if (segment.length > 0) {
-    msg[1].push(segment)
-    return msg
+    if (isSegmentArray(segment)) {
+      segments.push(...segment)
+    } else {
+      segments.push(segment)
+    }
   }
-  return false
+  if (segments.length > 0) {
+    if (typeof after === 'string') {
+      const index = findSegmentInMsg(msg, after)
+      after = index + 1
+    }
+    if (after === undefined) {
+      msg[1].push(...segments)
+    } else if (typeof after === 'number') {
+      msg[1].splice(after, 0, ...segments)
+    }
+    return msg
+  } else {
+    return false
+  }
 }
+

@@ -101,12 +101,23 @@ export class Msg {
       messageControlId as Message[0]['messageControlId']
   }
 
-  public addSegment = (segment: string | Segment) => {
-    const newSeg = addSegment(segment, this.msg)
-    if (newSeg === false) {
+  /**
+   * 
+   * @param segment - the segment to add.
+   * @param after the segment to add after. 
+   *  - If a `string`, it must be a segment name and optional iteration. Example `"MSH"` or `"OBR[2]"`
+   *  - If a `number`, then it 1-based index of the segments to add after.
+   *  - If `< 0` then it will be the index from the end of the message.
+   *  - If `0` then it will be the beginning of the message.
+   *  - If `undefined`, then it will be the end of the message.
+   * @returns the transformed `Msg` class
+   */
+  public addSegment = (segment: string | Segment | Seg | Segs, after?: number | string) => {
+    const transformedMsg = addSegment(segment, this.msg, after)
+    if (transformedMsg === false) {
       throw new Error('Could not addSegment')
     }
-    this.msg = newSeg
+    this.msg = transformedMsg
     return this
   }
 

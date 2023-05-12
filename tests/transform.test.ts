@@ -149,11 +149,12 @@ test('Set Iteration without looping array', () => {
 test('Set Iteration', () => {
   msg
     .delete('LAN')
-    .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|')
-    .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|')
-    .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|1^READ^HL70403~1^EXCELLENT^HL70404|', 'STF')
+    .addSegment('LAN|1|ESL^SPANISH^ISO639|2^WRITE^HL70403~2^GOOD^HL70404|', 3)
+    .addSegment('LAN|1|FRE^FRENCH^ISO639|3^SPEAK^HL70403~3^FAIR^HL70404|', 'MSH:STF[1]:LAN[2]')
   msg.setIteration<string>('LAN-1', (_v, i) => {
     return i.toString()
   })
   expect(msg.get('LAN-1')).toStrictEqual(['1', '2', '3'])
+  expect(msg.getSegments().map((seg) => seg.getName())).toStrictEqual(["MSH", "STF", "LAN", "LAN", "LAN", "EDU", "EDU", "ZZZ"])
 })
